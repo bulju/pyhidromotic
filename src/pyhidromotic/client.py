@@ -302,25 +302,21 @@ class HidromoticClient:
             return
 
         # Parse outputs starting after S marker, tracking slot IDs properly
-        # Device has 12 output slots (0-11), some may be disabled
+        # Device has 12 output slots (1-12), some may be disabled
         i = s_pos + 1
-        slot_id = 0
+        slot_id = 1
 
         _LOGGER.debug("Parsing outputs from position %d", i)
 
-        while i < len(data) - 6 and slot_id < max_outputs:
+        while i < len(data) - 6 and slot_id <= max_outputs:
             tipo = data[i]
 
-            # Check if this is a disabled slot (tipo=0, estado=7)
+            # Check if this is an empty or disabled slot (tipo=0)
             if tipo == 0x00:
-                estado = data[i + 4] if i + 4 < len(data) else 0
-                if estado == STATE_DISABLED:
-                    _LOGGER.debug("Slot %d: disabled at pos %d", slot_id, i)
-                    i += 6  # Disabled outputs have no label
-                    slot_id += 1
-                    continue
-                # Not a disabled slot pattern, skip this byte
-                i += 1
+                # Empty/disabled slots are always 6 bytes with no label
+                _LOGGER.debug("Slot %d: empty/disabled at pos %d", slot_id, i)
+                i += 6
+                slot_id += 1
                 continue
 
             # Check for valid zone or tank
@@ -358,7 +354,7 @@ class HidromoticClient:
             else:
                 label_len = 0
 
-            tipo_id = (tipo & 0x0F) - 1
+            tipo_id = tipo & 0x0F
 
             output_data = {
                 "id": tipo_id,
@@ -380,21 +376,23 @@ class HidromoticClient:
             )
 
             # Move past this output
-            i += 6 + label_len
+            # Zones have 6-byte header, tanks have 9-byte header (3 extra bytes for nivel/modo/etc)
+            header_size = 9 if is_tank else 6
+            i += header_size + label_len
             slot_id += 1
 
             # Skip disabled outputs from entity creation
             if estado == STATE_DISABLED:
                 continue
 
-            self._data["outputs"][slot_id - 1] = output_data
+            self._data["outputs"][slot_id] = output_data
 
             if is_zone:
                 self._data["zones"][tipo_id] = {
                     "id": tipo_id,
                     "slot_id": output_data["slot_id"],
                     "estado": estado,
-                    "label": label or f"Zone {tipo_id + 1}",
+                    "label": label or f"Zone {tipo_id}",
                     "duracion": duracion,
                 }
             elif is_tank:
@@ -402,7 +400,7 @@ class HidromoticClient:
                     "id": tipo_id,
                     "slot_id": output_data["slot_id"],
                     "estado": estado,
-                    "label": label or f"Tank {tipo_id + 1}",
+                    "label": label or f"Tank {tipo_id}",
                     "nivel": 0xFF,
                     "modo": 0,
                 }
@@ -441,7 +439,7 @@ class HidromoticClient:
                             output["estado"] = estado
                             # Update zone/tank estado
                             tipo_upper = tipo & 0xF0
-                            tipo_id = (tipo & 0x0F) - 1
+                            tipo_id = tipo & 0x0F
                             if (
                                 tipo_upper == OUTPUT_TYPE_ZONA
                                 and tipo_id in self._data.get("zones", {})
