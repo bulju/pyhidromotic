@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyhidromotic"
-version = "0.1.1"
+version = "0.1.2"
 description = "Python client for Hidromotic CHI Smart irrigation controllers"
 readme = "README.md"
 license = {text = "GPL-3.0-or-later"}
