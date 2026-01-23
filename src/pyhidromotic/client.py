@@ -302,13 +302,13 @@ class HidromoticClient:
             return
 
         # Parse outputs starting after S marker, tracking slot IDs properly
-        # Device has 12 output slots (1-12), some may be disabled
+        # Device has 12 output slots (0-11), some may be disabled
         i = s_pos + 1
-        slot_id = 1
+        slot_id = 0
 
         _LOGGER.debug("Parsing outputs from position %d", i)
 
-        while i < len(data) - 6 and slot_id <= max_outputs:
+        while i < len(data) - 6 and slot_id < max_outputs:
             tipo = data[i]
 
             # Check if this is an empty or disabled slot (tipo=0)
