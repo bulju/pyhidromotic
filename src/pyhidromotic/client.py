@@ -354,7 +354,7 @@ class HidromoticClient:
             else:
                 label_len = 0
 
-            tipo_id = tipo & 0x0F
+            tipo_id = (tipo & 0x0F) - 1
 
             output_data = {
                 "id": tipo_id,
@@ -392,7 +392,7 @@ class HidromoticClient:
                     "id": tipo_id,
                     "slot_id": output_data["slot_id"],
                     "estado": estado,
-                    "label": label or f"Zone {tipo_id}",
+                    "label": label or f"Zone {tipo_id + 1}",
                     "duracion": duracion,
                 }
             elif is_tank:
@@ -400,7 +400,7 @@ class HidromoticClient:
                     "id": tipo_id,
                     "slot_id": output_data["slot_id"],
                     "estado": estado,
-                    "label": label or f"Tank {tipo_id}",
+                    "label": label or f"Tank {tipo_id + 1}",
                     "nivel": 0xFF,
                     "modo": 0,
                 }
@@ -439,7 +439,7 @@ class HidromoticClient:
                             output["estado"] = estado
                             # Update zone/tank estado
                             tipo_upper = tipo & 0xF0
-                            tipo_id = tipo & 0x0F
+                            tipo_id = (tipo & 0x0F) - 1
                             if (
                                 tipo_upper == OUTPUT_TYPE_ZONA
                                 and tipo_id in self._data.get("zones", {})
