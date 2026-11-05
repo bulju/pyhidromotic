@@ -11,7 +11,17 @@ OUTPUT_TYPE_CICLON = 0x60  # Cyclon
 STATE_OFF = 0
 STATE_ON = 1
 STATE_PAUSED = 4
-STATE_WAITING = 5
+STATE_SHORT_CIRCUIT = 2
+STATE_OPEN_CIRCUIT = 3
+STATE_TIMEOUT = 5
+STATE_WAITING = STATE_TIMEOUT  # Legacy alias; this means time exhausted.
+STATE_TURNING_OFF = 10
+STATE_TURNING_ON = 11
+STATE_OPEN_CIRCUIT_ALT = 49
+
+# Pump status has its own meanings for values 5 and 11.
+PUMP_NO_WATER = 5
+PUMP_RECOVERING = 11
 STATE_DISABLED = 7  # Disconnected/disabled
 
 # Tank levels (nivel)
