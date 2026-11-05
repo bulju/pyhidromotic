@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, call
 
 import pytest
 
@@ -152,9 +152,9 @@ class TestHidromoticClient:
         assert client.is_auto_riego_on() is False
 
     def test_is_auto_riego_on_default(self) -> None:
-        """Test is_auto_riego_on returns False when not set."""
+        """An undecoded irrigation mode is unknown."""
         client = HidromoticClient("192.168.1.100")
-        assert client.is_auto_riego_on() is False
+        assert client.is_auto_riego_on() is None
 
     def test_is_tank_full_true(self) -> None:
         """Test is_tank_full returns True when tank is full."""
@@ -312,10 +312,11 @@ class TestHidromoticClientAsync:
 
         await client.set_auto_riego(True)
 
-        client._ws.send_str.assert_called_once_with(
-            '{"method":"hdmt","params":{"c":"#@RA1;"}}'
-        )
-        assert client._data["auto_riego"] is True
+        assert client._ws.send_str.call_args_list == [
+            call('{"method":"hdmt","params":{"c":"#@RA1;#@+;"}}'),
+            call('{"method":"hdmt","params":{"c":"#@C;"}}'),
+        ]
+        assert client._data["auto_riego"] is False
 
     @pytest.mark.asyncio
     async def test_set_auto_riego_off(self) -> None:
@@ -328,14 +329,15 @@ class TestHidromoticClientAsync:
 
         await client.set_auto_riego(False)
 
-        client._ws.send_str.assert_called_once_with(
-            '{"method":"hdmt","params":{"c":"#@RA0;"}}'
-        )
-        assert client._data["auto_riego"] is False
+        assert client._ws.send_str.call_args_list == [
+            call('{"method":"hdmt","params":{"c":"#@RA0;#@+;"}}'),
+            call('{"method":"hdmt","params":{"c":"#@C;"}}'),
+        ]
+        assert client._data["auto_riego"] is True
 
     @pytest.mark.asyncio
-    async def test_set_auto_riego_notifies_callbacks(self) -> None:
-        """Test set_auto_riego notifies registered callbacks."""
+    async def test_set_auto_riego_waits_for_report(self) -> None:
+        """Sending a request must not notify subscribers of unconfirmed state."""
         client = HidromoticClient("192.168.1.100")
         client._data = {"auto_riego": False}
         client._ws = MagicMock()
@@ -347,7 +349,7 @@ class TestHidromoticClientAsync:
 
         await client.set_auto_riego(True)
 
-        callback.assert_called_once_with(client._data)
+        callback.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_refresh(self) -> None:
